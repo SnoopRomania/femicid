@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Femicid</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/mapbox/assembly/publisher-staging/src/svgs/mapbox.svg">
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
+    <script src="https://unpkg.com/scrollama"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin:0;
+            padding:0;
+            font-family:'Roboto', sans-serif;
+        }
+        a, a:hover, a:visited {
+            color: #000000;
+        }
+        #map {
+            top:0;
+            height: 100vh;
+            width:100vw;
+            position: fixed;
+            z-index: 1;
+        }
+
+        #image-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #2E383A;
+            background-image: url('./background.png'); 
+            background-size: cover;
+            background-position: center;
+            z-index: 2;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.6s ease-in-out, visibility 0.6s;
+        }
+
+        #image-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        
+        #featured-image-container {
+            width: 100%;
+            height: 50vh; 
+            max-height: 450px; 
+            background-color: #2E383A;
+            position: relative; 
+            z-index: 5;         
+        }
+
+        #featured-image-container img {
+            width: 100%;
+            height: 100%;
+            display: block; 
+            object-fit: cover; 
+        }
+        
+        
+        #squares-container {
+            width: 100%;
+            height: 100%;
+            padding: 2vw;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 5px;
+        }
+
+        .square {
+            background-color: #556266;
+            border-radius: 2px;
+            opacity: 0;
+            transform: translateY(-30px);
+            position: relative; 
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+
+    
+        .square-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 0.6rem;
+            font-weight: bold;
+            pointer-events: none; 
+        }
+
+        
+        .square.highlighted .square-label {
+            color: #2E383A;
+        }
+        
+
+
+
+        .square.highlighted {
+            background-color: #FFA07A;
+        }
+        
+        .square.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #filters-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background-color: rgba(46, 56, 58, 0.616);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s, visibility 0.3s, top 0.3s, left 0.3s, transform 0.3s;
+        }
+
+        #filters-container.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #filters-container select, #filters-container button {
+            background-color: #2E383A;
+            color: #ECE7C3;
+            border: 0.4px solid #ECE7C3;
+            padding: 3px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        #filters-container select:hover {
+            background-color: #222A2B;
+            border-color: #FFA07A;
+        }
+
+        #filters-container button {
+            cursor: pointer;
+            background-color: #2E383A;
+            color: #ECE7C3;
+            border-color: #2E383A;
+        }
+
+        #filters-container button:hover {
+            background-color: #FFA07A;
+            border-color: #FFA07A;
+            color: #2E383A;
+        }
+        
+        #squares-container-ch4 {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            
+            
+            width: 80vmin;
+            height: 80vmin;
+            max-width: 500px;
+            max-height: 500px;
+            
+            display: grid;
+            
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .square-ch4 {
+            background-color: #556266; 
+            border-radius: 3px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        
+        .square-ch4.highlighted,
+        .square-ch6.highlighted {
+            background-color: #FF7C7A; 
+        }
+
+
+        .square-ch4.highlighted-secondary,
+        .square-ch6.highlighted-secondary {
+            background-color: #FFA07A; 
+        }
+
+        
+        .square-ch4.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        #squares-container-ch6 {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60vmin;
+            height: 60vmin;
+            max-width: 400px;
+            max-height: 400px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .square-ch6 {
+            background-color: #556266; 
+            border-radius: 3px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        .square-ch6.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+
+
+
+        #squares-container-ch9 {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vmin;
+            height: 70vmin;
+            max-width: 700px;
+            max-height: 500px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 15px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .month-square {
+            background-color: #556266; 
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out, background-color 0.5s ease-out;
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            border: 1px solid #777;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .month-square.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .month-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .number-label {
+            font-size: 1.8rem;
+            margin-top: 5px;
+            font-weight: 700;
+        }
+
+        #squares-container-ch10 {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vmin;
+            max-width: 600px;
+            
+            
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr;    
+            gap: 20px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .square-block-ch10 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .block-label-ch10 {
+            color: #ECE7C3;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .squares-grid-ch10 {
+            display: grid;
+            
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            width: 100%;
+        }
+
+        .square-ch10 {
+            background-color: #556266;
+            border-radius: 3px;
+            aspect-ratio: 1 / 1; 
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out, background-color 0.4s;
+        }
+
+        
+        .square-ch10.color-omor {
+            background-color: #FF7C7A;
+        }
+
+        
+        .square-ch10.color-tentativa {
+            background-color: #FFA07A;
+        }
+
+        .square-ch10.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+
+        .mapboxgl-popup {
+            max-width: 250px;
+        }
+        .mapboxgl-popup-content {
+            text-align: left;
+            font-family: 'Roboto', sans-serif;
+            background-color: #2e383abd; 
+            color: #ECE7C3;          
+            border-radius: 8px;        
+            border: 1px solid #5e4a34; 
+            padding: 15px;             
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .mapboxgl-popup-content h3 {
+            color: #ffffff;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .mapboxgl-popup-content a {
+            color: #FFA07A;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .mapboxgl-popup-content a:hover {
+            text-decoration: underline;
+        }
+
+        #mapInset {
+            bottom:50px;
+            right:30px;
+            height: 180px;
+            width:250px;
+            max-width:100%;
+            position: fixed;
+            z-index: 1;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        #mapInset .mapboxgl-ctrl-bottom-left{
+            display: none;
+        }
+        @media (max-width: 500px) {
+            #mapInset {
+                display: none;
+            }
+        }
+        #header {
+            margin: auto;
+            width: 100%;
+            position: relative;
+            z-index: 5;
+        }
+        #header.light {
+            background-color: transparent;
+            border: none;
+        }
+        #header h1, #header h2, #header p {
+            margin: 0;
+            padding: 1vh 4vw;
+            text-align: center; 
+        }
+        #header h1 {
+            padding-top:10vh;
+        }
+        #footer {
+            width: 100%;
+            min-height: 1vh;
+            padding-top: 1vh;
+            padding-bottom: 1vh;
+            text-align: center;
+            line-height: 25px;
+            font-size: 13px;
+            position: relative;
+            z-index: 5;
+        }
+        #features {
+            padding-top: 10vh;
+            padding-bottom: 10vh;
+            position: relative;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .hidden {
+            visibility: hidden;
+        }
+        .centered {
+            width: 50vw;
+            margin: 0 auto;
+        }
+        .lefty {
+            width: 33vw;
+            margin-left: 5vw;
+        }
+        .righty {
+            width: 33vw;
+            margin-left: 62vw;
+        }
+        .fully {
+            width: 100%;
+            margin: auto;
+        }
+        .light {
+            color: #ECE7C3;
+            background-color: #2e383ad7;
+            border-radius: 10px;
+            border: 0px solid #ddd;
+        }
+        .dark {
+            color: #fafafa;
+            background-color: #222222a0;
+        }
+        .step {
+            padding-bottom: 50vh;
+            opacity: 0.25;
+            pointer-events: auto;
+        }
+        .step.active {
+            opacity: 0.95;
+        }
+        .step div {
+            padding:  25px 50px;
+            line-height: 25px;
+            font-size: 1rem;
+        }
+        .step img {
+            width: 100%;
+        }
+
+        @media (max-width: 750px) {
+            .centered, .lefty, .righty, .fully {
+                width: 90vw;
+                margin: 0 auto;
+            }
+            #header h1 span { font-size: 1.2rem !important; }
+            #header h2 span { font-size: 1.8rem !important; }
+            #filters-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                width: 90%;
+                left: 5%;
+                top: 10px;
+                transform: none;
+            }
+            #filters-container select { width: 100%; }
+            #filters-container select, #filters-container button { font-size: 1rem; }
+            #filters-container button { grid-column: 1 / -1; width: 100%; }
+        }
+        
+        .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan,
+        .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan .mapboxgl-canvas {
+            touch-action: unset;
+        }
+
+        
+        @media (min-width: 801px) {
+
+            
+            #header h1,
+            #header h2,
+            #header p,
+            #footer p {
+                max-width: 800px;
+                
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            
+            .step.centered,
+            .step.lefty,
+            .step.righty,
+            .step.fully {
+                
+                max-width: 800px;
+            }
+
+            
+            .step.righty {
+                
+                margin-left: calc(100vw - 800px - 5vw);
+            }
+        }
+
+
+        
+        .step audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        
+        .step audio::-webkit-media-controls-panel {
+            background-color: #2E383A; 
+            border-radius: 5px;
+        }
+
+        
+        .step audio::-webkit-media-controls-current-time-display,
+        .step audio::-webkit-media-controls-time-remaining-display {
+            color: #ECE7C3; 
+            text-shadow: none;
+        }
+
+       
+        .step audio::-webkit-media-controls-timeline {
+            background-color: #556266; 
+            border-radius: 25px;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        
+        .step audio::-webkit-media-controls-volume-slider,
+        .step audio::-webkit-media-controls-timeline::-webkit-media-slider-runnable-track {
+            background-color: #556266;
+        }
+
+        
+        .step audio::-webkit-media-controls-play-button,
+        .step audio::-webkit-media-controls-mute-button {
+            background-color: #FFA07A; 
+            border-radius: 50%;
+        }
+        
+        .step audio::-webkit-media-controls-play-button:hover,
+        .step audio::-webkit-media-controls-mute-button:hover {
+            background-color: #ECE7C3; 
+        }
+
+        #video-background-container {
+            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; 
+        }
+
+        #video-background-container video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: 1; 
+        }
+
+        .video-color-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            
+            background-color: rgba(51, 62, 64, 0.6); 
+            z-index: 2;
+        }
+
+        
+        .step a:link,
+        .step a:visited {
+            color: #FFA07A; 
+            text-decoration: none; 
+            font-weight: bold; 
+            padding: 2px 4px; 
+            background-color: rgba(46, 56, 58, 0.7); 
+            border-radius: 4px; 
+            transition: all 0.2s ease-in-out; 
+        }
+
+        
+        .step a:hover {
+            color: #2E383A;
+            background-color: #FFA07A; 
+            text-decoration: none; 
+        }
+        
+    </style>
+</head>
+<body>
+
+<div id="filters-container" class="hidden">
+    <select id="month-filter"></select>
+    <select id="crime-type-filter"></select> 
+    <select id="aggressor-age-filter"></select>
+    <select id="victim-age-filter"></select>
+    <select id="relation-filter"></select>
+    <button id="reset-filters">Resetează toate filtrele</button>
+</div>
+
+<div id="map"></div>
+<div id="image-overlay">
+    <div id="squares-container"></div>      
+    <div id="squares-container-ch4"></div> 
+    <div id="squares-container-ch6"></div> 
+    <div id="squares-container-ch9"></div> 
+    <div id="squares-container-ch10"></div>
+
+    <div id="video-background-container">
+        <div class="video-color-overlay"></div>
+        <video autoplay loop muted playsinline>
+            <source src="Video1.mp4" type="video/mp4">
+            Browserul tău nu poate reda formatul video
+        </video>
+    </div>
+</div>
+<div id="mapInset"></div>
+<div id="story"></div>
+
+<script>
+var config = {
+    style: 'mapbox://styles/ed1990/cmgq74s1400c501sd73p41syj',
+    accessToken: 'pk.eyJ1IjoiZWQxOTkwIiwiYSI6ImNtZ3E5YzVkcTA2ZngyanFxOWNjNzJuaW0ifQ.iaGckMPaQpOkAEXhJ-o2Yw',
+    showMarkers: false,
+    markerColor: '#3FB1CE',
+    projection: 'mercator',
+    inset: false,
+    theme: 'light',
+    use3dTerrain: false,
+    auto: false,
+    title: '<span style="font-family:\'Roboto\', sans-serif; color:#FFA07A; font-size:1.6rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.7);" >Harta femicidului în 2025</span>',
+    subtitle: '<span style="font-family:\'Roboto\', sans-serif; color:#ECE7C3; font-size:2.4rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.7);" >În medie, la fiecare trei zile, un bărbat a încercat să omoare o femeie în România. 46 femei ucise, 43 de tentative</span>',
+    byline: '<p style="color: #ECE7C3; font-size:0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">Cristina Radu, Iulia Roșu, Răzvan Luțac <br> Dariana Ilie (ilustrații) <br> Edit Gyenge (interactivitate și vizualizare de date) </p>' +
+        '<p style="color: #ECE7C3; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); margin-top: 20px;">' +
+            '<a href="#Saptesprezece" style="color: #FFA07A; font-weight: bold; text-decoration: none;">Mergi direct</a> la harta interactivă sau continuă să scrollezi' +
+        '</p>',
+    featuredImage: 'featured.jpeg', 
+    footer: '<p style="margin-top:1px; margin-bottom:1px;"><b>14 octombrie 2025 </b></p> <p style="margin-top:1px; margin-bottom:1px;"><b>Sursa datelor:</b> colectare Snoop, ',
+    chapters: [
+        { id: 'Unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Snoop a centralizat cazurile de <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span> și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativă de omor</span> ale unor bărbați asupra femeilor de la 42 de Parchete din țară. (77 din 89) intră în categoria femicidului. <br><br> * Atenție! Acest material conține informații care vă pot afecta.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Doi', alignment: 'center', hidden: false, title: '', image: '', description: '<span style="background-color: #FFA07A; color: #272F31; font-weight: bold; padding: 2px 4px;">La fiecare 3 zile</span>, un bărbat a încercat să omoare o femeie în România, iar infracțiunea a ajuns la autorități. În 46 de cazuri, femeile au murit.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Trei', alignment: 'center', hidden: false, title: '', image: '', description: 'Snoop a centralizat toate cazurile de <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span> ale unor bărbați asupra unor femei de la începutul lui 2025 și până în septembrie și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativele</span> în perioada 1 ianuarie - 31 iulie 2025.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Patru', alignment: 'center', hidden: false, title: '', image: '', description: 'Dintre cele 89 de situații incluse în hartă, 43 cazuri de <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span> se încadrează la femicid. În cazul <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativelor</span>, 34 dintre acestea au fost <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentative de femicid</span>.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Cinci', alignment: 'center', hidden: false, title: '', image: '', description: 'Femicidul înseamnă uciderea intenționată a unei femei sau fete, adesea comisă de către un bărbat / partener intim, ca urmare a unor sentimente de ură, conform ONU, OMS și Convenției de la Istanbul. Astfel, Snoop a inclus la femicid cazurile în care au fost omorâte partenere de viață, foste partenere sau rude de sex feminin. <br><br>Mai mult, Snoop a introdus și crimele și încercările care au fost însoțite de viol sau agresiune sexuală. ', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        {
+    id: 'Sase',
+    alignment: 'center',
+    hidden: false,
+    title: 'Topul județelor pe crime și tentative de crime ',
+    image: '',
+    description: 'În 23 de județe și în București a avut loc cel puțin un <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span>, adică aproape două treimi din județele din țară. Dacă luăm în considerare doar <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativele</span> (6 județe), mai rămân 13 județe unde parchetele nu au raportat nici crime, nici încercări. Cu alte cuvinte, mai puțin de o treime din total.',
+    overlayImage: './background.png',
+    location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 },
+    mapAnimation: 'flyTo',
+    rotateAnimation: false,
+    callback: '',
+    onChapterEnter: [],
+    onChapterExit: []
+},
+        { id: 'Sapte', alignment: 'center', hidden: false, title: '', image: '', description: 'Județul în care au existat cele mai multe <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crime</span> și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentative</span> este Iași, cu 10 (2 femei omorâte, 8 tentative). Urmează Bucureștiul, cu o <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crimă</span> și 8 tentative (9, în total). Pe trei e Prahova, cu 4 <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crime</span> și 3 <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentative.</span>', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Sapte.unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Andreea Braga, Centrul FILIA, atrage atenția asupra nevoii urgente de prevenție, ca statul să nu mai intervină după tragedie. <br><br> <audio controls> <source src="AUDIO 1.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+
+        { id: 'Opt', alignment: 'center', hidden: false, title: 'Criminalitatea pe județe, dar în 2024 ', image: '', description: '<a href="https://bh.politiaromana.ro/files/pages_files/Coeficienti_criminalitate_nationala_2012-2024.pdf" target="_blank" rel="noopener noreferrer" >Conform coeficienților de criminalitate specifică pentru anul 2024</a> Iași. (locul 3), București (locul 1) și Prahova sunt în prima treime la gradul de criminalitate pentru anul trecut, având o rată „ridicată”. Coeficientul se calculează raportând totalul diverselor infracțiuni (nu doar omor) din respectivul județ la populația acestuia. <br><br>Cele mai multe femei au fost ucise, în 2025, în județul Prahova - patru. Același număr este și în județul Brăila. Două dintre crime au avut loc chiar în orașul Brăila. <br><br>Cel mai mic indice de criminalitate, în 2024, a fost în Tulcea (18,02) și Covasna (20,80), cele mai mici județe din România după populație, care au 0 crime împotriva femeilor și 0 tentative în 2025.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Opt.unu', alignment: 'center', hidden: false, title: '', image: '', description: 'În unele cazuri, femeile însă nu raportează tentativele care au loc în intimitatea casei. Din frică, din rușine sau chiar din neîncrederea că autoritățile le pot ajuta și sprijini pe mai departe. <br><br>Diana Ionescu, juristă și lector la Universitatea Babeș-Bolyai Cluj-Napoca, despre cum nu sunt protejate victimele violențelor: <br><br> <audio controls> <source src="AUDIO 2.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+
+        { id: 'Noua', alignment: 'center', hidden: false, title: 'Zilele și lunile în care au avut loc crimele', image: '', description: 'Lunile în care au fost comise <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crimele</span>: ianuarie (6), februarie (6), martie (9), aprilie (6), mai (1), iunie (4), iulie (4), august (7), septembrie (3). Cele mai multe au avut loc în martie. Dar cea mai violentă lună a fost, însă, iulie, cu 14 <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omoruri</span> și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentative</span>, una la două zile. În trei zile din 2025 au avut loc câte două <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crime</span>: 9 februarie, 9 martie, 13 august.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Zece', alignment: 'center', hidden: false, title: 'Rural vs urban ', image: '', description: '28 de <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omoruri</span>au fost în mediul rural, 18 în mediul urban. 19 <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentative</span> de omor au fost în mediul rural, 24 - în mediul urban. În total, 47 de situații în mediul rural, 42 în mediul urban. ', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Zece.unu', alignment: 'center', hidden: false, title: 'Teodora Marcu, ucisă în cartierul Cosmopolis ', image: '', description: 'Tânăra gravidă, în vârstă de 23 de ani, a fost ucisă pe 31 mai, împușcată în cap și în stomac, într-un complex rezidențial de lângă București. Bărbatul o hărțuia de mai mulți ani, iar Teodora obținuse un ordin de protecție împotriva lui în 2021. Care nu a mai fost prelungit. <br><br> <audio controls> <source src="AUDIO 3.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Unsprezece', alignment: 'center', hidden: false, title: 'Relația de rudenie dintre criminal și victimă (violență în familie):', image: '', description: 'Dintre femeile care au fost ucise, au existat relații de rudenie / concubinaj cu agresorul în 37 de cazuri: <br>- 15 erau soții ucise de soți; <br>- 11 aflate în concubinaj cu criminalul; <br>- 5 mame omorâte de fii; <br>- 4 foste soții/concubine; <br>- 2 bunici ucise de nepoți. <br>Media de vârstă a criminalilor este de 43 ani, iar a victimelor - 48. Până când toate Parchetele din țară au răspuns la solicitări, numărul femeilor omorâte a crescut de la 35 la 44. Apoi, până când materialul a fost publicat, au mai fost omorâte două femei. ',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Doisprezece', alignment: 'center', hidden: false, title: '', image: '', description: 'Din răspunsurile autorităților, Snoop a eliminat trei cazuri: unul din Ilfov, în care un cadavru de femeie a fost găsit în 2025, dar crima s-a petrecut în 2024; unul din Cluj, încadrat la omor, însă în care victima a murit în urma unui accident auto; unul din Harghita, petrecut în 2023, care a fost raportat pentru că în 2025 a ajuns cazul în atenția procurorilor de la respectivul Parchet.',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Doisprezece.unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Andreea Braga, Centrul FILIA, despre lipsa de coordonare între autorități care poate duce la cazuri de femicid. Cine construiește „plasa de siguranță” pentru victime? <br><br> <audio controls> <source src="AUDIO 4.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Treisprezece', alignment: 'center', hidden: false, title: '', image: '', description: 'Mai mulți dintre criminali au fost recidiviști. Printre ei, chiar primul criminal din 2025. S-a întâmplat pe 7 ianuarie în județul Bihor. Ucigașul se numește Sandor Lingurar, care a executat, conform <a href="https://www.ebihoreanul.ro/stiri/bestia-din-adoni-amanunte-cutremuratoare-despre-dubla-crima-care-a-ingrozit-bihorul-191495.html" target="_blank">eBihoreanul</a>, 3 ani de închisoare în Ungaria (2016) pentru violarea unui copil și în România (2019) 3 ani și jumătate pentru tâlhărie. El a omorât-o pe fosta sa educatoare (63 ani). ',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Paisprezece', alignment: 'center', hidden: false, title: '', image: '', description: 'Bărbatul i-a ucis întâi fiul, apoi a scalpat-o, a violat-o și a sugrumat-o. Criminalul a plecat abia după ce și-a încălzit de mâncare și a luat masa. În iulie, Lingurar a fost condamnat la închisoare pe viață. În aceeași situație s-a aflat și Emil Gânj, suspect de crimă în cazul fostei sale partenere, Anda Gyurca, cea pe care a atacat-o cu toporul și apoi i-a incendiat casa în 8 iulie 2025. Snoop a descoperit că Gânj fusese condamnat, în trecut, și pentru act sexual cu un minor și apoi pentru omor, însă fusese eliberat din închisoare în 2020, cu 5 ani și o lună înainte de expirarea termenului, ianuarie 2026. Emil Gânj este, în continuare, de negăsit.',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Paisprezece.unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Pușa Jimba, mama Andei, despre nepoțelul rămas fără mamă: <br><br> <audio controls> <source src="AUDIO 5.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Cincisprezece', alignment: 'center', hidden: false, title: '', image: '', description: '<span style="background-color: #FF7C7A; color: #FFFFFF; padding: 2px 4px;">Crimele</span> de o violență extremă au continuat și după ce Parchetele au trimis situația primelor luni. La începutul toamnei, în Baba Ana, județul Prahova, un bărbat de 53 ani a omorât-o pe femeia cu care avea o relație, 57 ani. După ce a lovit-o cu mașina, bărbatul a coborât și a lovit-o cu pumnii și cu picioarele. Apoi a mai urcat la volan și a trecut încă o dată peste trupul femeii. Ea s-a stins în aceeași seară, la spital. Bărbatul a fost prins într-o comună învecinată, arestat și urmează să fie judecat pentru omor calificat, cu premeditare și cruzimi, scrie Necenzurat Prahova. ',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Saisprezece', alignment: 'center', hidden: false, title: '', image: '', description: 'Tentativele raportate au fost, la fel, pline de cruzime. În Roman, Neamț, în luna iulie, un bărbat a stropit-o pe soția sa cu diluant, aceasta suferind arsuri grave. A acoperit-o apoi cu materiale textile pentru a opri focul, dar n-a sunat la 112. Femeia a fost descoperită de vecini după 15 zile, agonizând. Ei au alertat autoritățile.',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Saisprezece.unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Diana Ionescu, profesoară care a cercetat cum sunt protejate victimele violenței, explică de ce o femeie victimă, fără sprijin din partea autorităților statului, ajunge să renunțe la procesul penal împotriva agresorului său: <br><br> <audio controls> <source src="AUDIO 6.mp3" type="audio/mpeg"> Browserul tău nu permite redarea fișierului audio </audio>',overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Saptesprezece', alignment: 'center', hidden: false, title: ' ', image: '', description: 'Mai jos, puteți vedea, pe o hartă, <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crimele</span> și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativele</span> de omor asupra unor femei din România în anul 2025. Întrucât câteva Parchete nu au oferit locația exactă a faptelor, ci doar mediul urban sau rural, anumite evenimente nu au o locație exactă. Fiecare <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span> sau <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativă</span> este punctată separat. Click pe pictograme pentru detaliile legate de vârstă, localitate (unde există) și cum s-a petrecut <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">crima</span> sau <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativa</span>. Folosește filtrele interactive. Atenție! Informații care vă pot afecta.', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
+        { id: 'Optsprezece', alignment: 'left', hidden: true, title: '', image: '', description: '', location: { center: [25.0, 46.0], zoom: 6.2, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] }
+    ]
+};
+
+var initLoad = true;
+var layerTypes = { 'fill': ['fill-opacity'], 'line': ['line-opacity'], 'circle': ['circle-opacity', 'circle-stroke-opacity'], 'symbol': ['icon-opacity', 'text-opacity'], 'raster': ['raster-opacity'], 'fill-extrusion': ['fill-extrusion-opacity'], 'heatmap': ['heatmap-opacity'] }
+var alignments = { 'left': 'lefty', 'center': 'centered', 'right': 'righty', 'full': 'fully' }
+function getLayerPaintType(layer) { var layerType = map.getLayer(layer).type; return layerTypes[layerType]; }
+function setLayerOpacity(layer) {
+    var paintProps = getLayerPaintType(layer.layer);
+    paintProps.forEach(function(prop) {
+        var options = {}; if (layer.duration) { var transitionProp = prop + "-transition"; options = { "duration": layer.duration }; map.setPaintProperty(layer.layer, transitionProp, options); }
+        map.setPaintProperty(layer.layer, prop, layer.opacity, options);
+    });
+}
+var story = document.getElementById('story');
+if (config.featuredImage) {
+    var featuredImageContainer = document.createElement('div');
+    featuredImageContainer.id = 'featured-image-container';
+
+    var img = document.createElement('img');
+    img.src = config.featuredImage;
+    img.alt = "Featured Image for the Femicide Story"; // Alt text for accessibility
+
+    featuredImageContainer.appendChild(img);
+    story.prepend(featuredImageContainer); // .prepend() puts it at the beginning of the #story div
+}
+var features = document.createElement('div'); features.setAttribute('id', 'features');
+var header = document.createElement('div');
+if (config.title) { var titleText = document.createElement('h1'); titleText.innerHTML = config.title; header.appendChild(titleText); }
+if (config.subtitle) { var subtitleText = document.createElement('h2'); subtitleText.innerHTML = config.subtitle; header.appendChild(subtitleText); }
+if (config.byline) { var bylineText = document.createElement('p'); bylineText.innerHTML = config.byline; header.appendChild(bylineText); }
+if (header.innerText.length > 0) { header.classList.add(config.theme); header.setAttribute('id', 'header'); story.appendChild(header); }
+config.chapters.forEach((record, idx) => {
+    var container = document.createElement('div'); var chapter = document.createElement('div');
+    if (record.title) { var title = document.createElement('h3'); title.innerHTML = record.title; chapter.appendChild(title); }
+    if (record.image) { var image = new Image(); image.src = record.image; chapter.appendChild(image); }
+    if (record.description) { var story = document.createElement('p'); story.innerHTML = record.description; chapter.appendChild(story); }
+    container.setAttribute('id', record.id); container.classList.add('step');
+    if (idx === 0) { container.classList.add('active'); }
+    chapter.classList.add(config.theme); container.appendChild(chapter); container.classList.add(alignments[record.alignment] || 'centered');
+    if (record.hidden) { container.classList.add('hidden'); }
+    features.appendChild(container);
+});
+story.appendChild(features);
+var footer = document.createElement('div');
+if (config.footer) { var footerText = document.createElement('p'); footerText.innerHTML = config.footer; footer.appendChild(footerText); }
+if (footer.innerText.length > 0) { footer.classList.add(config.theme); footer.setAttribute('id', 'footer'); story.appendChild(footer); }
+
+
+mapboxgl.accessToken = config.accessToken;
+const transformRequest = (url) => { const hasQuery = url.indexOf("?") !== -1; const suffix = hasQuery ? "&pluginName=scrollytellingV2" : "?pluginName=scrollytellingV2"; return { url: url + suffix } }
+var map = new mapboxgl.Map({
+    container: 'map', 
+    style: config.style, 
+    center: config.chapters[0].location.center, 
+    zoom: config.chapters[0].location.zoom,
+    bearing: config.chapters[0].location.bearing, 
+    pitch: config.chapters[0].location.pitch, 
+    interactive: true, 
+    transformRequest: transformRequest, 
+    projection: config.projection,
+    minZoom: 5.5 
+});
+
+
+function createSquares() {
+    const container = document.getElementById('squares-container');
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+
+    for (let i = 1; i <= 365; i++) {
+        const square = document.createElement('div');
+        square.classList.add('square');
+
+        if (i % 3 === 0) {
+    square.classList.add('highlighted');
+
+    
+    const label = document.createElement('span');
+    label.classList.add('square-label');
+    label.innerText = i;
+    square.appendChild(label);
+        }
+        
+
+        fragment.appendChild(square);
+    }
+    container.appendChild(fragment);
+}
+
+function showSquaresAnimation() {
+    const container = document.getElementById('squares-container');
+    const squares = container.querySelectorAll('.square');
+    container.style.display = 'grid';
+    squares.forEach((square, index) => {
+        setTimeout(() => {
+            square.classList.add('visible');
+        }, index * 6);
+    });
+}
+
+function hideSquaresAnimation() {
+    const container = document.getElementById('squares-container');
+    const squares = container.querySelectorAll('.square');
+    container.style.display = 'none';
+    squares.forEach(square => {
+        square.classList.remove('visible');
+    });
+}
+
+function createSquaresCh4() {
+    const container = document.getElementById('squares-container-ch4');
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+
+    for (let i = 1; i <= 89; i++) {
+        const square = document.createElement('div');
+        square.classList.add('square-ch4');
+        
+        
+        if (i <= 43) {
+            
+            square.classList.add('highlighted');
+        } else if (i <= 43 + 34) { 
+            
+            square.classList.add('highlighted-secondary');
+        }
+        
+        
+        fragment.appendChild(square);
+    }
+    
+    
+    container.innerHTML = ''; 
+    container.appendChild(fragment);
+}
+
+function showSquaresCh4Animation() {
+    const container = document.getElementById('squares-container-ch4');
+    const squares = container.querySelectorAll('.square-ch4');
+    container.style.display = 'grid';
+    squares.forEach((square, index) => {
+        setTimeout(() => {
+            square.classList.add('visible');
+        }, index * 10); 
+    });
+}
+
+function hideSquaresCh4Animation() {
+    const container = document.getElementById('squares-container-ch4');
+    const squares = container.querySelectorAll('.square-ch4');
+    container.style.display = 'none';
+    squares.forEach(square => {
+        square.classList.remove('visible');
+    });
+}
+
+function createSquaresCh6() {
+    const container = document.getElementById('squares-container-ch6');
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+
+    for (let i = 1; i <= 42; i++) {
+        const square = document.createElement('div');
+        
+        square.classList.add('square-ch6'); 
+        
+        if (i <= 23) {
+            
+            square.classList.add('highlighted'); 
+        } else if (i <= 23 + 6) {
+            
+            square.classList.add('highlighted-secondary'); 
+        }
+        
+        fragment.appendChild(square);
+    }
+    container.innerHTML = '';
+    container.appendChild(fragment);
+}
+
+function showSquaresCh6Animation() {
+    const container = document.getElementById('squares-container-ch6');
+    const squares = container.querySelectorAll('.square-ch6');
+    container.style.display = 'grid';
+    squares.forEach((square, index) => {
+        setTimeout(() => {
+            square.classList.add('visible');
+        }, index * 20);
+    });
+}
+
+function hideSquaresCh6Animation() {
+    const container = document.getElementById('squares-container-ch6');
+    const squares = container.querySelectorAll('.square-ch6');
+    container.style.display = 'none';
+    squares.forEach(square => {
+        square.classList.remove('visible');
+    });
+}
+
+function createSquaresCh9() {
+    const container = document.getElementById('squares-container-ch9');
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+
+    
+    const monthData = [
+        { name: 'ianuarie', count: 6 }, { name: 'februarie', count: 6 },
+        { name: 'martie', count: 9 }, { name: 'aprilie', count: 6 },
+        { name: 'mai', count: 1 }, { name: 'iunie', count: 4 },
+        { name: 'iulie', count: 14 }, { name: 'august', count: 7 },
+        { name: 'septembrie', count: 3 }, { name: 'octombrie', count: 0 },
+        { name: 'noiembrie', count: 0 }, { name: 'decembrie', count: 0 }
+    ];
+
+    const maxCount = Math.max(...monthData.map(m => m.count)); // Find the max value (14)
+
+    monthData.forEach(data => {
+        const square = document.createElement('div');
+        square.classList.add('month-square');
+
+        const monthLabel = document.createElement('div');
+        monthLabel.classList.add('month-label');
+        monthLabel.innerText = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+
+        const numberLabel = document.createElement('div');
+        numberLabel.classList.add('number-label');
+        numberLabel.innerText = data.count;
+
+        
+        const opacity = data.count > 0 ? 0.2 + (data.count / maxCount) * 0.8 : 0;
+        
+        if (data.count > 0) {
+            
+            square.style.backgroundColor = `rgba(255, 124, 122, ${opacity})`;
+        } else {
+            
+            square.style.backgroundColor = '#556266';
+        }
+
+        square.appendChild(monthLabel);
+        square.appendChild(numberLabel);
+        fragment.appendChild(square);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(fragment);
+}
+
+function showSquaresCh9Animation() {
+    const container = document.getElementById('squares-container-ch9');
+    const squares = container.querySelectorAll('.month-square');
+    container.style.display = 'grid';
+    squares.forEach((square, index) => {
+        setTimeout(() => {
+            square.classList.add('visible');
+        }, index * 50); 
+    });
+}
+
+function hideSquaresCh9Animation() {
+    const container = document.getElementById('squares-container-ch9');
+    const squares = container.querySelectorAll('.month-square');
+    container.style.display = 'none';
+    squares.forEach(square => {
+        square.classList.remove('visible');
+    });
+}
+
+
+function createSquaresCh10() {
+    const container = document.getElementById('squares-container-ch10');
+    if (!container) return;
+    container.innerHTML = ''; // Clear it first
+
+    // Define the data for our four blocks
+    const blocksData = [
+        { label: 'Omor - Rural (28)', count: 28, colorClass: 'color-omor' },
+        { label: 'Omor - Urban (18)', count: 18, colorClass: 'color-omor' },
+        { label: 'Tentativă - Rural (19)', count: 19, colorClass: 'color-tentativa' },
+        { label: 'Tentativă - Urban (24)', count: 24, colorClass: 'color-tentativa' }
+    ];
+
+    
+    blocksData.forEach(data => {
+        
+        const block = document.createElement('div');
+        block.className = 'square-block-ch10';
+
+        
+        const label = document.createElement('div');
+        label.className = 'block-label-ch10';
+        label.innerText = data.label;
+
+        
+        const squaresGrid = document.createElement('div');
+        squaresGrid.className = 'squares-grid-ch10';
+
+        
+        for (let i = 0; i < data.count; i++) {
+            const square = document.createElement('div');
+            square.classList.add('square-ch10', data.colorClass);
+            squaresGrid.appendChild(square);
+        }
+
+        
+        block.appendChild(label);
+        block.appendChild(squaresGrid);
+        container.appendChild(block);
+    });
+}
+
+function showSquaresCh10Animation() {
+    const container = document.getElementById('squares-container-ch10');
+    if (!container) return;
+    const squares = container.querySelectorAll('.square-ch10');
+    container.style.display = 'grid'; // Change from 'none' to 'grid' to show it
+    squares.forEach((square, index) => {
+        setTimeout(() => {
+            square.classList.add('visible');
+        }, index * 10); 
+    });
+}
+
+function hideSquaresCh10Animation() {
+    const container = document.getElementById('squares-container-ch10');
+    if (!container) return;
+    const squares = container.querySelectorAll('.square-ch10');
+    container.style.display = 'none'; // Hide the container
+    squares.forEach(square => {
+        square.classList.remove('visible');
+    });
+}
+
+const chapterVideoMap = {
+    'Trei': 'Video1.mp4',
+    'Cinci': 'Video3.mp4',      
+    'Sapte.unu': 'Video2.mp4',
+    'Opt.unu': 'Video2.mp4',
+    'Unsprezece': 'Video3.mp4',
+    'Doisprezece': 'Video3.mp4',
+    'Treisprezece': 'Video4.mp4',
+    'Paisprezece': 'Video4.mp4'
+};
+
+
+var scroller = scrollama();
+let allMarkers = [];
+
+
+function hideAllMarkers() {
+    allMarkers.forEach(item => {
+        item.marker.getElement().style.display = 'none';
+    });
+}
+
+function showAllMarkers() {
+    allMarkers.forEach(item => {
+        item.marker.getElement().style.display = 'block';
+    });
+    
+    applyFilters(); 
+}
+
+
+createSquares();
+createSquaresCh4(); 
+createSquaresCh6(); 
+createSquaresCh9(); 
+createSquaresCh10();
+
+map.on("load", function() {
+    addMarkersToMap();
+    setupFilters();
+
+    
+    async function addCountyLayer() {
+    try {
+        const response = await fetch('harta.geojson');
+        const countyShapes = await response.json();
+
+        map.addSource('counties-source', {
+            'type': 'geojson',
+            'data': countyShapes
+        });
+
+        const layers = map.getStyle().layers;
+        let firstSymbolId;
+        for (const layer of layers) {
+            if (layer.type === 'symbol') {
+                firstSymbolId = layer.id;
+                break;
+            }
+        }
+        
+        map.addLayer({
+            'id': 'counties-highlight',
+            'type': 'fill',
+            'source': 'counties-source',
+            'paint': {
+                'fill-color': '#FF7C7A',
+                'fill-opacity': 0.6
+            },
+            'filter': [
+                'in',
+                'jud', 
+                'IAȘI',
+                'MUNICIPIUL BUCUREȘTI', 
+                'PRAHOVA'
+            ],
+            'layout': {
+                'visibility': 'none'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading harta.geojson. Make sure the file is in the correct folder.', error);
+        }
+    }
+
+    
+    addCountyLayer();
+
+    
+
+    
+    scroller
+        .setup({ step: '.step', offset: 0.5, progress: true })
+        .onStepEnter(async response => {
+    var chapter = config.chapters.find(chap => chap.id === response.element.id);
+    response.element.classList.add('active');
+    map[chapter.mapAnimation || 'flyTo'](chapter.location);
+
+    const imageOverlay = document.getElementById('image-overlay');
+    const filtersContainer = document.getElementById('filters-container');
+    const videoContainer = document.getElementById('video-background-container');
+    const videoElement = videoContainer.querySelector('video');
+
+    
+    if (map.getLayer('counties-highlight')) {
+         map.setLayoutProperty('counties-highlight', 'visibility', 'none');
+    }
+    hideSquaresAnimation();
+    hideSquaresCh4Animation();
+    hideSquaresCh6Animation();
+    hideSquaresCh9Animation();
+    hideSquaresCh10Animation();
+
+    videoContainer.style.display = 'none';
+    if (!videoElement.paused) videoElement.pause();
+    
+    showAllMarkers();
+    filtersContainer.classList.add('hidden');
+
+    if (chapter.overlayImage) {
+        imageOverlay.style.backgroundImage = `url(${chapter.overlayImage})`;
+        imageOverlay.classList.remove('hidden');
+    } else {
+        imageOverlay.style.backgroundImage = 'none';
+        imageOverlay.classList.add('hidden');
+    }
+
+    
+    if (chapter.id === 'Doi') {
+        imageOverlay.classList.remove('hidden');
+        hideAllMarkers();
+        showSquaresAnimation();
+    } 
+
+    else if (chapterVideoMap[chapter.id]) { 
+        const videoSrc = chapterVideoMap[chapter.id]; 
+        
+        
+        videoElement.querySelector('source').src = videoSrc; 
+        videoElement.load(); 
+        
+        videoContainer.style.display = 'block'; 
+        videoElement.play(); 
+        
+        
+        imageOverlay.classList.remove('hidden');
+        imageOverlay.style.backgroundImage = 'none'; 
+        
+        hideAllMarkers();
+    }
+
+    
+    else if (chapter.id === 'Patru') {
+        imageOverlay.classList.remove('hidden');
+        hideAllMarkers();
+        showSquaresCh4Animation();
+    }
+    else if (chapter.id === 'Sase') {
+        imageOverlay.classList.remove('hidden');
+        hideAllMarkers();
+        showSquaresCh6Animation();
+    }
+    
+    else if (['Sapte', 'Opt'].includes(chapter.id)) { 
+        
+        imageOverlay.classList.add('hidden'); 
+        hideAllMarkers();
+        if (map.getLayer('counties-highlight')) {
+            map.setLayoutProperty('counties-highlight', 'visibility', 'visible');
+        }
+    }
+    
+    else if (chapter.id === 'Noua') {
+        imageOverlay.classList.remove('hidden');
+        hideAllMarkers();
+        showSquaresCh9Animation();
+    }
+
+    else if (chapter.id === 'Zece') {
+        imageOverlay.classList.remove('hidden'); 
+        hideAllMarkers(); 
+        showSquaresCh10Animation(); 
+    }
+
+    else if (['Unu', 'Cinci', 'Zece.unu', 'Doisprezece.unu', 'Paisprezece.unu', 'Cincisprezece', 'Saisprezece', 'Saisprezece.unu'].includes(chapter.id)) {
+        
+        imageOverlay.classList.remove('hidden'); 
+        hideAllMarkers();
+    }
+    else if (['Saptesprezece', 'Optsprezece'].includes(chapter.id)) {
+        
+        imageOverlay.classList.add('hidden');
+        filtersContainer.classList.remove('hidden');
+            }
+        })
+        .onStepExit(response => {
+    response.element.classList.remove('active');
+
+    
+    var chapter = config.chapters.find(chap => chap.id === response.element.id);
+
+    
+    if (chapterVideoMap[chapter.id]) {
+        const videoContainer = document.getElementById('video-background-container');
+        const videoElement = videoContainer.querySelector('video');
+
+        
+        if (!videoElement.paused) {
+            videoElement.pause();
+        }
+        videoContainer.style.display = 'none';
+    }
+});
+});
+
+map.addControl(new mapboxgl.NavigationControl());
+window.addEventListener('resize', scroller.resize);
+
+const geojson = {
+    "type": "FeatureCollection",
+    "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+    "features": [
+        // OMORURI 
+        { "type": "Feature", "properties": { "Judet": "BIHOR", "Localitate": "Tarcea", "Data": "07-01-2025", "Tip": "Omor", "Descriere": "Și-a violat fosta educatoare, a ucis-o pe ea și pe fiul ei.", "VarstaAgresor": 29, "VarstaVictima": 63, "Relatie": "cunoștință (fostă educatoare)", "Sursa": "https://www.ebihoreanul.ro/" }, "geometry": { "type": "Point", "coordinates": [ 22.1843, 47.4552 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRĂILA", "Localitate": "Brăila", "Data": "11-01-2025", "Tip": "Omor", "Descriere": "Și-a omorât soția cu multiple lovituri.", "VarstaAgresor": 53, "VarstaVictima": 55, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.9538, 45.2673 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Câmpina", "Data": "14-01-2025", "Tip": "Omor", "Descriere": "Și-a ucis concubina cu mai multe lovituri de cuțit.", "VarstaAgresor": 39, "VarstaVictima": 33, "Relatie": "concubini", "Sursa": "https://ziarulprahova.ro/" }, "geometry": { "type": "Point", "coordinates": [ 25.7369, 45.1292 ] } },
+        { "type": "Feature", "properties": { "Judet": "MARAMUREȘ", "Localitate": "Băița", "Data": "18-01-2025", "Tip": "Omor", "Descriere": "Și-a omorât concubina în urma unui conflict.", "VarstaAgresor": 64, "VarstaVictima": 69, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 23.2833, 47.6333 ] } },
+        { "type": "Feature", "properties": { "Judet": "GIURGIU", "Localitate": "Mihai Bravu", "Data": "24-01-2025", "Tip": "Omor", "Descriere": "Și-a omorât soția, lăsând în urmă doi copii.", "VarstaAgresor": 35, "VarstaVictima": 34, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0536, 44.1147 ] } },
+        { "type": "Feature", "properties": { "Judet": "HARGHITA", "Localitate": "Cristuru Secuiesc", "Data": "08-02-2025", "Tip": "Omor", "Descriere": "Și-a ucis concubina cu un cuțit.", "VarstaAgresor": 67, "VarstaVictima": 66, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 25.0342, 46.2917 ] } },
+        { "type": "Feature", "properties": { "Judet": "OLT", "Localitate": "Izbiceni", "Data": "09-02-2025", "Tip": "Omor", "Descriere": "Și-a omorât mama lovind-o cu un corp dur.", "VarstaAgresor": 31, "VarstaVictima": 54, "Relatie": "mamă-fiu", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 24.6333, 43.85 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 1", "Data": "09-02-2025", "Tip": "Omor", "Descriere": "Și-a omorât partenera, cu care avea un copil de 2 ani.", "VarstaAgresor": 28, "VarstaVictima": 28, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0772, 44.4711 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUZĂU", "Localitate": "Cochirleanca", "Data": "26-02-2025", "Tip": "Omor", "Descriere": "I-a dat foc mamei sale.", "VarstaAgresor": 29, "VarstaVictima": 70, "Relatie": "mamă-fiu", "Sursa": "https://opiniabuzau.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.975, 45.225 ] } },
+        { "type": "Feature", "properties": { "Judet": "GALAȚI", "Localitate": "Băleni", "Data": "05-03-2025", "Tip": "Omor", "Descriere": "A omorât o bătrână pentru a-i fura bunurile.", "VarstaAgresor": 21, "VarstaVictima": 80, "Relatie": "vecini", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.7833, 45.7167 ] } },
+        { "type": "Feature", "properties": { "Judet": "MARAMUREȘ", "Localitate": "Sighetu Marmației", "Data": "09-03-2025", "Tip": "Omor", "Descriere": "Și-a ucis soția cu lovituri repetate de cuțit.", "VarstaAgresor": 49, "VarstaVictima": 52, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 23.8863, 47.9292 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Valea Călugărească", "Data": "09-03-2025", "Tip": "Omor", "Descriere": "Și-a lovit soția cu un topor în cap.", "VarstaAgresor": 53, "VarstaVictima": 50, "Relatie": "soț-soție", "Sursa": "https://www.observatorph.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.2333, 44.95 ] } },
+        { "type": "Feature", "properties": { "Judet": "VASLUI", "Localitate": "Murgeni", "Data": "14-03-2025", "Tip": "Omor", "Descriere": "Și-a ucis mama, apoi s-a sinucis.", "VarstaAgresor": 26, "VarstaVictima": 53, "Relatie": "mamă-fiu", "Sursa": "https://www.observatornews.ro/" }, "geometry": { "type": "Point", "coordinates": [ 28.0167, 46.2167 ] } },
+        { "type": "Feature", "properties": { "Judet": "BACĂU", "Localitate": "Onești", "Data": "18-03-2025", "Tip": "Omor", "Descriere": "Și-a omorât mama cu multiple lovituri.", "VarstaAgresor": 36, "VarstaVictima": 57, "Relatie": "mamă-fiu", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.7667, 46.25 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUZĂU", "Localitate": "Nehoiu", "Data": "21-03-2025", "Tip": "Omor", "Descriere": "Și-a lovit soția în cap cu un corp contondent.", "VarstaAgresor": 49, "VarstaVictima": 46, "Relatie": "soț-soție", "Sursa": "https://reporterbuzoian.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.3122, 45.4194 ] } },
+        { "type": "Feature", "properties": { "Judet": "OLT", "Localitate": "Slatina", "Data": "25-03-2025", "Tip": "Omor", "Descriere": "A omorât-o pe mama sa, care era președinte de scară.", "VarstaAgresor": 37, "VarstaVictima": 54, "Relatie": "mamă-fiu", "Sursa": "https://www.gorjonline.ro/" }, "geometry": { "type": "Point", "coordinates": [ 24.3633, 44.425 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUZĂU", "Localitate": "Vileanca-Vale", "Data": "28-03-2025", "Tip": "Omor", "Descriere": "Bănuit că și-a omorât soția prin incendiere.", "VarstaAgresor": 33, "VarstaVictima": 28, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.025, 45.05 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRĂILA", "Localitate": "Vădeni", "Data": "30-03-2025", "Tip": "Omor", "Descriere": "S-au certat, a înjunghiat-o mortal.", "VarstaAgresor": 50, "VarstaVictima": 48, "Relatie": "concubini", "Sursa": "https://www.libertatea.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.9, 45.3667 ] } },
+        { "type": "Feature", "properties": { "Judet": "CONSTANȚA", "Localitate": "Cuza Vodă", "Data": "20-04-2025", "Tip": "Omor", "Descriere": "Și-a omorât soția lovind-o de mai multe ori cu un cuțit.", "VarstaAgresor": 32, "VarstaVictima": 27, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 28.05, 44.3167 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "Iași", "Data": "21-04-2025", "Tip": "Omor", "Descriere": "A fost lovită cu ciocanul în cap de fostul soț.", "VarstaAgresor": 57, "VarstaVictima": 52, "Relatie": "foști soți", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.5889, 47.1583 ] } },
+        { "type": "Feature", "properties": { "Judet": "BIHOR", "Localitate": "Oradea", "Data": "27-04-2025", "Tip": "Omor", "Descriere": "Și-a omorât sora vitregă și pe soțul acesteia.", "VarstaAgresor": 47, "VarstaVictima": 52, "Relatie": "soră vitregă", "Sursa": "https://www.ebihoreanul.ro/" }, "geometry": { "type": "Point", "coordinates": [ 21.9189, 47.0465 ] } },
+        { "type": "Feature", "properties": { "Judet": "ILFOV", "Localitate": "Ștefăneștii de Jos", "Data": "31-05-2025", "Tip": "Omor", "Descriere": "Cazul Teodora, ucisă de fostul concubin.", "VarstaAgresor": 49, "VarstaVictima": 23, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.2, 44.55 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRĂILA", "Localitate": "Brăila", "Data": "05-06-2025", "Tip": "Omor", "Descriere": "Și-a înjunghiat mortal mama.", "VarstaAgresor": 39, "VarstaVictima": 68, "Relatie": "mamă-fiu", "Sursa": "https://obiectivbr.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.9538, 45.2673 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Lipănești", "Data": "16-06-2025", "Tip": "Omor", "Descriere": "Și-a ucis concubina cu un cuțit.", "VarstaAgresor": 37, "VarstaVictima": 22, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0167, 45.0667 ] } },
+        { "type": "Feature", "properties": { "Judet": "BACĂU", "Localitate": "Comănești", "Data": "20-06-2025", "Tip": "Omor", "Descriere": "A consumat alcool și și-a ucis bunica.", "VarstaAgresor": 43, "VarstaVictima": 85, "Relatie": "bunică-nepot", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.4333, 46.4167 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRĂILA", "Localitate": "Scorțaru Nou", "Data": "28-06-2025", "Tip": "Omor", "Descriere": "A ucis-o pe soția sa cu multiple lovituri.", "VarstaAgresor": 54, "VarstaVictima": 48, "Relatie": "soț-soție", "Sursa": "https://debraila.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.6667, 45.3667 ] } },
+        { "type": "Feature", "properties": { "Judet": "MUREȘ", "Localitate": "Miheșu de Câmpie", "Data": "08-07-2025", "Tip": "Omor", "Descriere": "A omorât-o pe fosta concubină cu un topor și a incendiat casa.", "VarstaAgresor": 37, "VarstaVictima": 23, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 24.1667, 46.7333 ] } },
+        { "type": "Feature", "properties": { "Judet": "BIHOR", "Localitate": "Voivozi", "Data": "09-07-2025", "Tip": "Omor", "Descriere": "A asfixiat-o cu perna pe concubina sa.", "VarstaAgresor": 50, "VarstaVictima": 58, "Relatie": "concubini", "Sursa": "https://www.ebihoreanul.ro/" }, "geometry": { "type": "Point", "coordinates": [ 22.45, 47.3667 ] } },
+        { "type": "Feature", "properties": { "Judet": "HUNEDOARA", "Localitate": "Hunedoara", "Data": "10-07-2025", "Tip": "Omor", "Descriere": "Și-a omorât soția lovind-o de mai multe ori.", "VarstaAgresor": 31, "VarstaVictima": 27, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 22.9, 45.75 ] } },
+        { "type": "Feature", "properties": { "Judet": "GORJ", "Localitate": "Târgu Jiu", "Data": "24-07-2025", "Tip": "Omor", "Descriere": "Și-a ucis bunica pentru bani.", "VarstaAgresor": 15, "VarstaVictima": 62, "Relatie": "bunică-nepot", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 23.275, 45.0333 ] } },
+        { "type": "Feature", "properties": { "Judet": "ARAD", "Localitate": "Sintea Mare", "Data": "05-08-2025", "Tip": "Omor", "Descriere": "A fost urcată în mașină, bătută și abandonată, murind la spital.", "VarstaAgresor": 35, "VarstaVictima": 28, "Relatie": "foști concubini", "Sursa": "https://www.aradon.ro/" }, "geometry": { "type": "Point", "coordinates": [ 21.4333, 46.5667 ] } },
+        { "type": "Feature", "properties": { "Judet": "ILFOV", "Localitate": "Mogoșoaia", "Data": "13-08-2025", "Tip": "Omor", "Descriere": "A ucis-o pe proprietara sa, o femeie în vârstă.", "VarstaAgresor": 25, "VarstaVictima": 76, "Relatie": "chiriaș-proprietar", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 25.9961, 44.5208 ] } },
+        { "type": "Feature", "properties": { "Judet": "HUNEDOARA", "Localitate": "Ruda-Brad", "Data": "13-08-2025", "Tip": "Omor", "Descriere": "A sufocat-o pe vecina sa în vârstă.", "VarstaAgresor": 30, "VarstaVictima": 90, "Relatie": "vecini", "Sursa": "https://www.newsalert.ro/" }, "geometry": { "type": "Point", "coordinates": [ 22.7833, 46.1167 ] } },
+        { "type": "Feature", "properties": { "Judet": "CONSTANȚA", "Localitate": "Topraisar", "Data": "19-08-2025", "Tip": "Omor", "Descriere": "Ucisă de partenerul de viață, care a sunat la 112.", "VarstaAgresor": 51, "VarstaVictima": 45, "Relatie": "concubini", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 28.45, 44.0 ] } },
+        { "type": "Feature", "properties": { "Judet": "DOLJ", "Localitate": "Craiova", "Data": "21-08-2025", "Tip": "Omor", "Descriere": "Un inginer și-a ucis soția cu un cuțit.", "VarstaAgresor": 51, "VarstaVictima": 45, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 23.8, 44.3167 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "Bălțați", "Data": "26-08-2025", "Tip": "Omor", "Descriere": "Și-a bătut soția bolnavă până a murit.", "VarstaAgresor": 53, "VarstaVictima": 51, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 27.1333, 47.1667 ] } },
+        { "type": "Feature", "properties": { "Judet": "CLUJ", "Localitate": "Măguri-Răcătău", "Data": "29-08-2025", "Tip": "Omor", "Descriere": "A înjunghiat-o pe soția sa în urma unui conflict.", "VarstaAgresor": 37, "VarstaVictima": 32, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 23.4, 46.6667 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Baba Ana", "Data": "02-09-2025", "Tip": "Omor", "Descriere": "A bătut-o pe stradă și a călcat-o cu mașina.", "VarstaAgresor": 53, "VarstaVictima": 57, "Relatie": "parteneri", "Sursa": "https://www.ziarulincomod.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.5167, 44.9667 ] } },
+        { "type": "Feature", "properties": { "Judet": "GIURGIU", "Localitate": "Mihăilești", "Data": "22-09-2025", "Tip": "Omor", "Descriere": "Înjunghiată de soț, în urma unui conflict.", "VarstaAgresor": 46, "VarstaVictima": 41, "Relatie": "soț-soție", "Sursa": "https://stirileprotv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 25.9167, 44.3167 ] } },
+        { "type": "Feature", "properties": { "Judet": "NEAMȚ", "Localitate": "Spiridonești", "Data": "30-09-2025", "Tip": "Omor", "Descriere": "Înjunghiată de soț, alături de mama acesteia.", "VarstaAgresor": 32, "VarstaVictima": 23, "Relatie": "soț-soție", "Sursa": "https://www.digi24.ro/" }, "geometry": { "type": "Point", "coordinates": [ 26.7333, 46.9667 ] } },
+        { "type": "Feature", "properties": { "Judet": "DÂMBOVIȚA", "Localitate": "Vizurești", "Data": "27-02-2025", "Tip": "Omor", "Descriere": "A lovit-o cu pumnii și picioarele până a decedat.", "VarstaAgresor": 46, "VarstaVictima": 24, "Relatie": "concubini", "Sursa": "https://columnatv.ro/" }, "geometry": { "type": "Point", "coordinates": [ 25.5944, 44.7083 ] } },
+        { "type": "Feature", "properties": { "Judet": "GORJ", "Localitate": "Valea Deșului", "Data": "05-04-2025", "Tip": "Omor", "Descriere": "Și-a înjunghiat soția, care a decedat.", "VarstaAgresor": 57, "VarstaVictima": 52, "Relatie": "soț-soție", "Sursa": "https://www.antena3.ro/" }, "geometry": { "type": "Point", "coordinates": [ 23.3333, 44.8 ] } },
+        { "type": "Feature", "properties": { "Judet": "MARAMUREȘ", "Localitate": "Sarasău", "Data": "13-04-2025", "Tip": "Omor", "Descriere": "Conflict spontan, și-a ucis vecina.", "VarstaAgresor": 61, "VarstaVictima": 56, "Relatie": "vecini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 23.95, 47.9667 ] } },
+        { "type": "Feature", "properties": { "Judet": "CĂLĂRAȘI", "Localitate": "Sărulești", "Data": "14-04-2025", "Tip": "Omor", "Descriere": "A înjunghiat-o pe fondul geloziei, victima a decedat.", "VarstaAgresor": 46, "VarstaVictima": 45, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.65, 44.4 ] } },
+
+        // TENTATIVE 
+        { "type": "Feature", "properties": { "Judet": "SĂLAJ", "Localitate": "Derșida", "Data": "1-2-2025", "Tip": "Tentativă", "Descriere": "Stare conflictuală mai veche, consum zilnic de alcool, lipsa mijloacelor materiale și condiții precare de trai", "VarstaAgresor": 45, "VarstaVictima": 37, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 22.4500, 47.3833 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "1-3-2025", "Tip": "Tentativă", "Descriere": "Consum de băuturi alcoolice, gelozie", "VarstaAgresor": 40, "VarstaVictima": 35, "Relatie": "soți", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.3, 47.2 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 1", "Data": "1-10-2025", "Tip": "Tentativă", "Descriere": "A înjunghiat-o în mod repetat în mai multe zone ale corpului pe fondul depresiei, conflictelor familiale preexistente și consumului de alcool", "VarstaAgresor": 58, "VarstaVictima": 19, "Relatie": "tată-fiică", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.08, 44.48 ] } },
+        { "type": "Feature", "properties": { "Judet": "IALOMIȚA", "Localitate": "mediu urban", "Data": "2-3-2025", "Tip": "Tentativă", "Descriere": "Autorul a bătut-o pe fosta sa concubină cu o bâtă, ambii erau căsătoriți - în alte relații", "VarstaAgresor": 37, "VarstaVictima": 35, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.3667, 44.6167 ] } },
+        { "type": "Feature", "properties": { "Judet": "ILFOV", "Localitate": "Corbeanca", "Data": "2-6-2025", "Tip": "Tentativă", "Descriere": "Atacatorul avea ordin de protecție, a amenințat-o cu moartea, a atacat-o cu cuțit și pistol cu bile neletal, 11 plăgi facial și scalp", "VarstaAgresor": 47, "VarstaVictima": 23, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0333, 44.6 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 5", "Data": "2-13-2025", "Tip": "Tentativă", "Descriere": "Exista ordin de protecție în 2022, atacatorul nu a acceptat despărțirea, gelozie, a înjunghiat-o", "VarstaAgresor": 31, "VarstaVictima": 41, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.06, 44.4 ] } },
+        { "type": "Feature", "properties": { "Judet": "ARAD", "Localitate": "Arad", "Data": "2-21-2025", "Tip": "Tentativă", "Descriere": "Lovire la nivelul capului cu obiect contondent, sustragere de bunuri din locuință", "VarstaAgresor": 58, "VarstaVictima": 69, "Relatie": "vecini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 21.3167, 46.1667 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRAȘOV", "Localitate": "Hărman", "Data": "2-21-2025", "Tip": "Tentativă", "Descriere": "Conflict generat de consumul de alcool, încăierare între mai multe persoane", "VarstaAgresor": 26, "VarstaVictima": 52, "Relatie": "nu există", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 25.6833, 45.7 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRAȘOV", "Localitate": "Brașov", "Data": "2-23-2025", "Tip": "Tentativă", "Descriere": "A încercat să sugrume victima cu cureaua și apoi cu zgarda de câine după ce s-a rupt, apoi a încercat s-o arunce de la etajul 9", "VarstaAgresor": 73, "VarstaVictima": 71, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 25.6, 45.65 ] } },
+        { "type": "Feature", "properties": { "Judet": "VASLUI", "Localitate": "Huși", "Data": "2-26-2025", "Tip": "Tentativă", "Descriere": "Autorul avea ordin de protecție, a înjunghiat-o cu un obiect ascuțit, băuse alcool", "VarstaAgresor": 57, "VarstaVictima": 48, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 28.0667, 46.6667 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "3-4-2025", "Tip": "Tentativă", "Descriere": "Conflict preexistent", "VarstaAgresor": 44, "VarstaVictima": 57, "Relatie": "vecini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.4, 47.1 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "3-8-2025", "Tip": "Tentativă", "Descriere": "Consum de băuturi alcoolice, gelozie", "VarstaAgresor": 43, "VarstaVictima": 28, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.5, 47.3 ] } },
+        { "type": "Feature", "properties": { "Judet": "SUCEAVA", "Localitate": "mediu rural", "Data": "3-10-2025", "Tip": "Tentativă", "Descriere": "A lovit-o cu mătura și cu un cutter cu care ascuțea creioane în gât, 44-45 zile de îngrijiri medicale", "VarstaAgresor": 57, "VarstaVictima": 55, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0, 47.6 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 4", "Data": "3-13-2025", "Tip": "Tentativă", "Descriere": "Atacatorul a avut un episod psihotic, alcool plus substanțe psihoactive, a înjunghiat-o", "VarstaAgresor": 41, "VarstaVictima": 68, "Relatie": "mamă-fiu", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.11, 44.38 ] } },
+        { "type": "Feature", "properties": { "Judet": "BRĂILA", "Localitate": "Brăila", "Data": "4-2-2025", "Tip": "Tentativă", "Descriere": "Fără detalii", "VarstaAgresor": 50, "VarstaVictima": 48, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.96, 45.27 ] } },
+        { "type": "Feature", "properties": { "Judet": "CĂLĂRAȘI", "Localitate": "Cuza Vodă", "Data": "4-8-2025", "Tip": "Tentativă", "Descriere": "Gelozie, și-a înjunghiat concubina, apoi a lovit-o cu scaunul și a legat-o de brațe, i-a pus un căluș în gură pentru a nu țipa după ajutor și a plecat de acasă", "VarstaAgresor": 51, "VarstaVictima": 44, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.4667, 44.2167 ] } },
+        { "type": "Feature", "properties": { "Judet": "ARAD", "Localitate": "Arad", "Data": "4-11-2025", "Tip": "Tentativă", "Descriere": "Lipsire de libertate, viol, tentativă la omor calificat, cruzime raportat la gravele leziuni produse victimei", "VarstaAgresor": 54, "VarstaVictima": 5, "Relatie": "nu există", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 21.32, 46.17 ] } },
+        { "type": "Feature", "properties": { "Judet": "BISTRIȚA-N", "Localitate": "Dumitrița", "Data": "4-12-2025", "Tip": "Tentativă", "Descriere": "Relație de concubinaj încheiată cu 2 săptămâni înainte, victima s-a dus să își ia hainele, fostul concubin i-a cerut să reia relația, a devenit violent", "VarstaAgresor": 30, "VarstaVictima": 24, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 24.5833, 47.05 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "5-10-2025", "Tip": "Tentativă", "Descriere": "Gelozia autorului", "VarstaAgresor": 29, "VarstaVictima": 24, "Relatie": "soți", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.6, 47.0 ] } },
+        { "type": "Feature", "properties": { "Judet": "GALAȚI", "Localitate": "Galați", "Data": "5-12-2025", "Tip": "Tentativă", "Descriere": "Sustragere bunuri", "VarstaAgresor": 19, "VarstaVictima": 31, "Relatie": "nu există", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 28.05, 45.4333 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 5", "Data": "5-13-2025", "Tip": "Tentativă", "Descriere": "S-a dus la locul de muncă al fostei concubine, cu care fusese agresiv în relație, și i-a secționat conductele sistemului de frânare de la mașină", "VarstaAgresor": 45, "VarstaVictima": 29, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.07, 44.41 ] } },
+        { "type": "Feature", "properties": { "Judet": "ARAD", "Localitate": "Arad", "Data": "5-15-2025", "Tip": "Tentativă", "Descriere": "Din gelozie, asfixie mecanică prin sugrumare", "VarstaAgresor": 57, "VarstaVictima": 49, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 21.33, 46.18 ] } },
+        { "type": "Feature", "properties": { "Judet": "CONSTANȚA", "Localitate": "Eforie Nord", "Data": "5-16-2025", "Tip": "Tentativă", "Descriere": "A vrut să-i taie gâtul cu cuțitul, victima a atenuat cu mâna", "VarstaAgresor": 63, "VarstaVictima": 50, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 28.6333, 44.0667 ] } },
+        { "type": "Feature", "properties": { "Judet": "NEAMȚ", "Localitate": "Borlești", "Data": "5-19-2025", "Tip": "Tentativă", "Descriere": "A înjunghiat-o pe soție cu un cuțit după ce a consumat alcool", "VarstaAgresor": 61, "VarstaVictima": 57, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.5667, 46.8 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "5-25-2025", "Tip": "Tentativă", "Descriere": "A atacat-o pe gestionară, el fiind client, pe fondul consumului de băuturi alcoolice", "VarstaAgresor": 30, "VarstaVictima": 38, "Relatie": "nu există", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.1, 47.4 ] } },
+        { "type": "Feature", "properties": { "Judet": "GALAȚI", "Localitate": "Galați", "Data": "5-27-2025", "Tip": "Tentativă", "Descriere": "A vrut să o omoare pe fosta concubină pentru că nu mai voia să fie împreună cu el", "VarstaAgresor": 46, "VarstaVictima": 38, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 28.06, 45.44 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "6-5-2025", "Tip": "Tentativă", "Descriere": "Conflict spontan", "VarstaAgresor": 52, "VarstaVictima": 72, "Relatie": "mamă-fiu", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.2, 46.9 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 4", "Data": "6-13-2025", "Tip": "Tentativă", "Descriere": "A înjunghiat-o pe fondul consumului de substanțe psihoactive și gelozie", "VarstaAgresor": 46, "VarstaVictima": 38, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.12, 44.39 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "6-16-2025", "Tip": "Tentativă", "Descriere": "Autorul a fost nemulțumit că victima nu vrea să reia relația", "VarstaAgresor": 65, "VarstaVictima": 50, "Relatie": "soți", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.0, 47.5 ] } },
+        { "type": "Feature", "properties": { "Judet": "ARAD", "Localitate": "Arad", "Data": "6-17-2025", "Tip": "Tentativă", "Descriere": "A întreținut cu victima raport sexual după ce a strangulat-o cu un cablu, a lovit-o cu pumnii, picioarele, i-a aplicat 12-13 lovituri cu cuțitul", "VarstaAgresor": 17, "VarstaVictima": 81, "Relatie": "străbunică vitregă", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 21.34, 46.19 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 3", "Data": "6-18-2025", "Tip": "Tentativă", "Descriere": "A înjunghiat-o pe fondul dependenței de jocuri de noroc", "VarstaAgresor": 16, "VarstaVictima": 20, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.15, 44.42 ] } },
+        { "type": "Feature", "properties": { "Judet": "IAȘI", "Localitate": "mediu rural", "Data": "6-22-2025", "Tip": "Tentativă", "Descriere": "Conflict spontan, alcool, cuplu aflat în prag de divorț", "VarstaAgresor": 53, "VarstaVictima": 51, "Relatie": "soți", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.9, 47.3 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 5", "Data": "7-2-2025", "Tip": "Tentativă", "Descriere": "A incendiat locuința fostei concubine după ce în casă a surprins-o cu un alt bărbat", "VarstaAgresor": 40, "VarstaVictima": 18, "Relatie": "fostă concubină", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.08, 44.42 ] } },
+        { "type": "Feature", "properties": { "Judet": "CONSTANȚA", "Localitate": "Ostrov", "Data": "7-10-2025", "Tip": "Tentativă", "Descriere": "A lovit-o în cap pentru că îi luase obiecte din casă în urmă cu mai mulți ani", "VarstaAgresor": 57, "VarstaVictima": 80, "Relatie": "cunoscuți", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 27.3667, 44.1 ] } },
+        { "type": "Feature", "properties": { "Judet": "NEAMȚ", "Localitate": "Roman", "Data": "7-11-2025", "Tip": "Tentativă", "Descriere": "A stropit-o cu diluant și incendiat-o pe concubina sa, a stins incendiul cu textile, dar nu a sunat la 112; vecinii au sunat după 15 zile, femeia era „în agonie”", "VarstaAgresor": 64, "VarstaVictima": 62, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.9167, 46.9333 ] } },
+        { "type": "Feature", "properties": { "Judet": "DOLJ", "Localitate": "Robănești", "Data": "7-12-2025", "Tip": "Tentativă", "Descriere": "Și-a bătut și incendiat soția, care n-a vrut să depună plângere. Motiv: gelozie", "VarstaAgresor": 50, "VarstaVictima": 47, "Relatie": "soț-soție", "Sursa": "https://www.gds.ro/Local/Dolj/" }, "geometry": { "type": "Point", "coordinates": [ 24.1, 44.3333 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Băicoi", "Data": "7-16-2025", "Tip": "Tentativă", "Descriere": "Conflict preexistent - neînțelegeri privind moștenirea", "VarstaAgresor": 40, "VarstaVictima": 58, "Relatie": "frate-soră", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 25.8667, 45.05 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Ploiești", "Data": "7-16-2025", "Tip": "Tentativă", "Descriere": "Conflict preexistent - neînțelegeri privind moștenirea", "VarstaAgresor": 40, "VarstaVictima": 77, "Relatie": "frate-soră", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.0167, 44.9333 ] } },
+        { "type": "Feature", "properties": { "Judet": "CONSTANȚA", "Localitate": "Cernavodă", "Data": "7-18-2025", "Tip": "Tentativă", "Descriere": "Persoană fără discernământ, a încercat să își omoare vecina", "VarstaAgresor": 65, "VarstaVictima": 77, "Relatie": "vecini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 28.0333, 44.3333 ] } },
+        { "type": "Feature", "properties": { "Judet": "PRAHOVA", "Localitate": "Ploiești", "Data": "7-18-2025", "Tip": "Tentativă", "Descriere": "A așteptat-o și a lovit-o din spate cu mașina, victima fiind pe trotuar. motiv: nu voiau să reia relația", "VarstaAgresor": 45, "VarstaVictima": 43, "Relatie": "foști concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.02, 44.94 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUZĂU", "Localitate": "mediu rural", "Data": "7-21-2025", "Tip": "Tentativă", "Descriere": "A încercat să-și sugrume mama, apoi i-a turnat o cratiță cu apă fierbinte pe corp și a lovit-o în cap cu un corp metalic, nu avea discernământ", "VarstaAgresor": 29, "VarstaVictima": 52, "Relatie": "mamă-fiu", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.8, 45.2 ] } },
+        { "type": "Feature", "properties": { "Judet": "BUCUREȘTI", "Localitate": "Sector 1", "Data": "7-26-2025", "Tip": "Tentativă", "Descriere": "Fără detalii", "VarstaAgresor": 50, "VarstaVictima": 43, "Relatie": "nu există", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.09, 44.49 ] } },
+        { "type": "Feature", "properties": { "Judet": "BIHOR", "Localitate": "Suplacu de Barcău", "Data": "NO DATA", "Tip": "Tentativă", "Descriere": "Tentativă de omor pe fondul unui conflict spontan", "VarstaAgresor": 34, "VarstaVictima": 32, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 22.5333, 47.25 ] } }
+    ]
+};
+
+
+const monthNames = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"];
+function getMonthName(dateString) { const monthIndex = parseInt(dateString.split('-')[1], 10); return monthNames[monthIndex]; }
+function getAgeBin(age) {
+    if (age < 18) return "sub 18 ani"; if (age <= 24) return "între 18 și 24"; if (age <= 29) return "între 25 și 29"; if (age <= 34) return "între 30 și 34";
+    if (age <= 39) return "între 35 și 39"; if (age <= 44) return "între 40 și 44"; if (age <= 49) return "între 45 și 49"; if (age <= 54) return "între 50 și 54";
+    if (age <= 60) return "între 55 și 60"; if (age > 60) return "peste 60"; return "necunoscut";
+}
+
+function getRelationCategory(relation) {
+    const rel = relation.toLowerCase();
+    if (rel.includes('fost') || rel.includes('foșt')) { return "fost partener"; }
+    if (rel.includes('soț') || rel.includes('soție') || rel.includes('concubin') || rel.includes('partener')) { return "actual partener"; }
+    if (rel.includes('mamă') || rel.includes('fiu') || rel.includes('bunică') || rel.includes('nepot') || rel.includes('frate') || rel.includes('mama pres')) { return "rudă"; }
+    return "altele";
+}
+
+
+function addMarkersToMap() {
+    for (const feature of geojson.features) {
+        const el = document.createElement('div');
+
+       
+        if (feature.properties.Tip === 'Tentativă') {
+            el.style.backgroundImage = 'url(marker2.png)';
+        } else { 
+            el.style.backgroundImage = 'url(marker.png)';
+        }
+        
+        el.style.width = '30px';
+        el.style.height = '30px';
+        el.style.backgroundSize = 'contain';
+        el.style.backgroundRepeat = 'no-repeat';
+        el.style.cursor = 'pointer';
+
+        const marker = new mapboxgl.Marker(el) 
+            .setLngLat(feature.geometry.coordinates)
+            .setPopup(
+                new mapboxgl.Popup({ offset: 25, closeOnClick: true, closeButton: true, focusAfterOpen: false }).setHTML(
+                    `<h3 style="margin-top:1px; margin-bottom:5px; font-size:1.1rem;">${feature.properties.Localitate}, ${feature.properties.Judet}</h3>
+                     <p style="margin-top:1px; margin-bottom:1px;"><b>Dată:</b> ${feature.properties.Data}</p>
+                     <p style="margin-top:1px; margin-bottom:1px;"><b>Descriere:</b> ${feature.properties.Descriere}</p>
+                     <p style="margin-top:1px; margin-bottom:1px;"><b>Relație:</b> ${feature.properties.Relatie}</p>
+                     <p style="margin-top:1px; margin-bottom:1px;"><b>Vârste:</b> Agresor (${feature.properties.VarstaAgresor}) - Victimă (${feature.properties.VarstaVictima})</p>
+                     ${feature.properties.Sursa ? `<p style="margin-top:5px; margin-bottom:1px;"><a href="${feature.properties.Sursa}" target="_blank">Citește sursa</a></p>` : ''}`
+                )
+            ).addTo(map);
+
+        allMarkers.push({ marker: marker, properties: feature.properties });
+    }
+}
+
+function setupFilters() {
+    const monthFilter = document.getElementById('month-filter');
+    const crimeTypeFilter = document.getElementById('crime-type-filter'); 
+    const aggressorAgeFilter = document.getElementById('aggressor-age-filter');
+    const victimAgeFilter = document.getElementById('victim-age-filter');
+    const relationFilter = document.getElementById('relation-filter');
+    const resetButton = document.getElementById('reset-filters');
+
+    const uniqueMonths = [...new Set(geojson.features.map(f => getMonthName(f.properties.Data)))];
+    uniqueMonths.sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b));
+    monthFilter.innerHTML = '<option value="all">Toate lunile</option>';
+    uniqueMonths.forEach(month => { monthFilter.innerHTML += `<option value="${month}">${month}</option>`; });
+
+    crimeTypeFilter.innerHTML = '<option value="all">Tip infracțiune (toate)</option>';
+    crimeTypeFilter.innerHTML += '<option value="Omor">Omor</option>';
+    crimeTypeFilter.innerHTML += '<option value="Tentativă">Tentativă</option>';
+
+    const ageBins = ["sub 18 ani", "între 18 și 24", "între 25 și 29", "între 30 și 34", "între 35 și 39", "între 40 și 44", "între 45 și 49", "între 50 și 54", "între 55 și 60", "peste 60"];
+    aggressorAgeFilter.innerHTML = '<option value="all">Vârsta criminal (toate)</option>';
+    victimAgeFilter.innerHTML = '<option value="all">Vârsta victimă (toate)</option>';
+    ageBins.forEach(bin => {
+        aggressorAgeFilter.innerHTML += `<option value="${bin}">${bin}</option>`;
+        victimAgeFilter.innerHTML += `<option value="${bin}">${bin}</option>`;
+    });
+
+    const relationBins = ["rudă", "fost partener", "actual partener", "altele"];
+    relationFilter.innerHTML = '<option value="all">Relație (toate)</option>';
+    relationBins.forEach(bin => { relationFilter.innerHTML += `<option value="${bin}">${bin}</option>`; });
+
+    
+    monthFilter.addEventListener('change', applyFilters);
+    crimeTypeFilter.addEventListener('change', applyFilters); 
+    aggressorAgeFilter.addEventListener('change', applyFilters);
+    victimAgeFilter.addEventListener('change', applyFilters);
+    relationFilter.addEventListener('change', applyFilters);
+    
+    resetButton.addEventListener('click', () => {
+        monthFilter.value = 'all';
+        crimeTypeFilter.value = 'all'; 
+        aggressorAgeFilter.value = 'all';
+        victimAgeFilter.value = 'all';
+        relationFilter.value = 'all';
+        applyFilters();
+    });
+}
+
+function applyFilters() {
+    const selectedMonth = document.getElementById('month-filter').value;
+    const selectedCrimeType = document.getElementById('crime-type-filter').value; 
+    const selectedAggressorAge = document.getElementById('aggressor-age-filter').value;
+    const selectedVictimAge = document.getElementById('victim-age-filter').value;
+    const selectedRelation = document.getElementById('relation-filter').value;
+
+    allMarkers.forEach(item => {
+        const markerElement = item.marker.getElement();
+        const properties = item.properties;
+
+        const monthMatch = (selectedMonth === 'all') || (getMonthName(properties.Data) === selectedMonth);
+        const crimeTypeMatch = (selectedCrimeType === 'all') || (properties.Tip === selectedCrimeType); 
+        const aggressorAgeMatch = (selectedAggressorAge === 'all') || (getAgeBin(properties.VarstaAgresor) === selectedAggressorAge);
+        const victimAgeMatch = (selectedVictimAge === 'all') || (getAgeBin(properties.VarstaVictima) === selectedVictimAge);
+        const relationMatch = (selectedRelation === 'all') || (getRelationCategory(properties.Relatie) === selectedRelation);
+
+        
+        if (monthMatch && crimeTypeMatch && aggressorAgeMatch && victimAgeMatch && relationMatch) {
+            markerElement.style.display = 'block';
+        } else {
+            markerElement.style.display = 'none';
+        }
+    });
+}
+</script>
+
+</body>
+</html>
