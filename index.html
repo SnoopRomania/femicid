@@ -712,7 +712,7 @@ var config = {
             '<a href="#Saptesprezece" style="color: #FFA07A; font-weight: bold; text-decoration: none;">Mergi direct</a> la harta interactivă sau continuă să scrollezi' +
         '</p>',
     featuredImage: 'featured.jpeg', 
-    footer: '<p style="margin-top:1px; margin-bottom:1px;"><b>14 octombrie 2025 </b></p> <p style="margin-top:1px; margin-bottom:1px;"><b>Sursa datelor:</b> colectare Snoop, ',
+    footer: '<p style="margin-top:1px; margin-bottom:1px;"><b>Data publicării articolului: 14 octombrie 2025 <br> Data ultimei actualizări a datelor din hartă: 22 octombrie 2025</b></p> <p style="margin-top:1px; margin-bottom:1px;"><b>Sursa datelor:</b> colectare Snoop, ',
     chapters: [
         { id: 'Unu', alignment: 'center', hidden: false, title: '', image: '', description: 'Snoop a centralizat cazurile de <span style="background-color: #FF7C7A; color: #272F31; padding: 2px 4px;">omor</span> și <span style="background-color: #FFA07A; color: #272F31; padding: 2px 4px;">tentativă de omor</span> ale unor bărbați asupra femeilor de la 42 de Parchete din țară. 77 din 89 intră în categoria femicidului. <br><br> * Atenție! Acest material conține informații care vă pot afecta.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
         { id: 'Doi', alignment: 'center', hidden: false, title: '', image: '', description: '<span style="background-color: #FFA07A; color: #272F31; font-weight: bold; padding: 2px 4px;">La fiecare 3 zile</span>, un bărbat a încercat să omoare o femeie în România, iar infracțiunea a ajuns la autorități. În 46 de cazuri, femeile au murit.', overlayImage: './background.png', location: { center: [25.0, 46.0], zoom: 6, pitch: 0, bearing: 0 }, mapAnimation: 'flyTo', rotateAnimation: false, callback: '', onChapterEnter: [], onChapterExit: [] },
@@ -1357,6 +1357,96 @@ const geojson = {
         { "type": "Feature", "properties": { "Judet": "GORJ", "Localitate": "Valea Deșului", "Data": "05-04-2025", "Tip": "Omor", "Descriere": "Și-a înjunghiat soția, care a decedat.", "VarstaAgresor": 57, "VarstaVictima": 52, "Relatie": "soț-soție", "Sursa": "https://www.antena3.ro/actualitate/locale/crima-socanta-in-gorj-un-barbat-a-turnat-benzina-pe-sotia-sa-si-i-a-dat-foc-741991.html" }, "geometry": { "type": "Point", "coordinates": [ 23.3333, 44.8 ] } },
         { "type": "Feature", "properties": { "Judet": "MARAMUREȘ", "Localitate": "Sarasău", "Data": "13-04-2025", "Tip": "Omor", "Descriere": "Conflict spontan, și-a ucis vecina.", "VarstaAgresor": 61, "VarstaVictima": 56, "Relatie": "vecini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 23.95, 47.9667 ] } },
         { "type": "Feature", "properties": { "Judet": "CĂLĂRAȘI", "Localitate": "Sărulești", "Data": "14-04-2025", "Tip": "Omor", "Descriere": "A înjunghiat-o pe fondul geloziei, victima a decedat.", "VarstaAgresor": 46, "VarstaVictima": 45, "Relatie": "concubini", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 26.65, 44.4 ] } },
+        {
+    "type": "Feature",
+    "properties": {
+      "Judet": "BRAȘOV",
+      "Localitate": "Vulcan",
+      "Data": "10-15-2025",
+      "Tip": "Omor",
+      "Descriere": "ucisă cu cuțitul de partener, condamnat în trecut pentru tentativă de omor",
+      "VarstaAgresor": 40,
+      "VarstaVictima": 30,
+      "Relatie": "parteneri",
+      "Sursa": "https://hotnews.ro/caz-de-femicid-in-brasov-o-tanara-a-fost-ucisa-de-iubitul-recidivist-barbatul-a-fost-arestat-26087931"
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [ 25.43, 45.68 ]
+    }
+  },
+  {
+    "type": "Feature",
+    "properties": {
+      "Judet": "BUCUREȘTI",
+      "Localitate": "București",
+      "Data": "10-16-2025",
+      "Tip": "Omor",
+      "Descriere": "înjunghiată de iubitul fiicei adoptive",
+      "VarstaAgresor": 20,
+      "VarstaVictima": 58,
+      "Relatie": "mama partenerei",
+      "Sursa": "https://stirileprotv.ro/socant/filmul-crimei-din-bucuresti-unde-o-femeie-a-fost-ucisa-de-fiica-ei-si-de-iubitul-fetei-cum-au-inscenat-totul.html"
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [ 26.10, 44.43 ]
+    }
+  },
+  {
+    "type": "Feature",
+    "properties": {
+      "Judet": "ARAD",
+      "Localitate": "Peregu Mare",
+      "Data": "10-17-2025",
+      "Tip": "Omor",
+      "Descriere": "a înjunghiat-o pe mama sa, apoi a sunat la 112",
+      "VarstaAgresor": 25,
+      "VarstaVictima": 52,
+      "Relatie": "mamă-fiu",
+      "Sursa": "https://stirileprotv.ro/stiri/actualitate/o-mama-din-arad-a-fost-injunghiata-chiar-de-fiul-ei-calm-a-sunat-la-112-si-a-marturisit-ce-a-facut.html"
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [ 20.98, 46.33 ]
+    }
+  },
+  {
+    "type": "Feature",
+    "properties": {
+      "Judet": "SIBIU",
+      "Localitate": "Sibiu",
+      "Data": "10-18-2025",
+      "Tip": "Omor",
+      "Descriere": "sugrumată de fiul care consumase băuturi alcoolice",
+      "VarstaAgresor": 54,
+      "VarstaVictima": 74,
+      "Relatie": "mamă-fiu",
+      "Sursa": "https://www.oradesibiu.ro/2025/10/18/crima-pe-strada-miraslau-un-sibian-si-a-omorat-mama-si-a-anuntat-politia/"
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [ 24.15, 45.79 ]
+    }
+  },
+  {
+    "type": "Feature",
+    "properties": {
+      "Judet": "DOLJ",
+      "Localitate": "Unirea",
+      "Data": "10-19-2025",
+      "Tip": "Omor",
+      "Descriere": "a omorât-o cu toporul și a aruncat-o în fântână, apoi s-a spânzurat, după ce și-a anunțat copiii",
+      "VarstaAgresor": 45,
+      "VarstaVictima": 39,
+      "Relatie": "soț-soție",
+      "Sursa": "https://www.antena3.ro/actualitate/locale/inca-un-femicid-in-romania-un-barbat-din-dolj-si-a-omorat-sotia-cu-toporul-a-aruncat-o-in-fantana-apoi-s-a-sinucis-763694.html"
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [ 23.67, 44.18 ]
+    }
+  },
 
         // TENTATIVE 
         { "type": "Feature", "properties": { "Judet": "SĂLAJ", "Localitate": "Derșida", "Data": "1-2-2025", "Tip": "Tentativă", "Descriere": "Stare conflictuală mai veche, consum zilnic de alcool, lipsa mijloacelor materiale și condiții precare de trai", "VarstaAgresor": 45, "VarstaVictima": 37, "Relatie": "soț-soție", "Sursa": "" }, "geometry": { "type": "Point", "coordinates": [ 22.4500, 47.3833 ] } },
